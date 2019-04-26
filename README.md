@@ -341,7 +341,12 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 
 **Kendala Yang Dialami**-
 
--
+praktikum3.c: In function ‘xmp_open’:
+praktikum3.c:117:25: warning: unused variable ‘tofile’ [-Wunused-variable]
+                   FILE *tofile = fopen("/home/test/Backup/dir->d_name", "w");
+                         ^~~~~~
+praktikum3.c:115:25: warning: unused variable ‘fromfile’ [-Wunused-variable]
+                   FILE *fromfile = fopen(dir->d_name, "w+");
 
 **Screenshot**
 
