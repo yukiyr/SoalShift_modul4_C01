@@ -190,103 +190,9 @@ b. Tepat saat file system akan di-unmount
 
 **Jawaban :**
 
-```
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
-#include <pwd.h>
-#include <grp.h>
-
-int main() {
-  pid_t pid, sid;
-
-  pid = fork();
-
-  if (pid < 0) {
-    exit(EXIT_FAILURE);
-  }
-
-  if (pid > 0) {
-    exit(EXIT_SUCCESS);
-  }
-
-  umask(0);
-
-  sid = setsid();
-
-  if (sid < 0) {
-    exit(EXIT_FAILURE);
-  }
-
-  if ((chdir("/")) < 0) {
-    exit(EXIT_FAILURE);
-  }
-
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  close(STDERR_FILENO);
-
-  while(1) {
-    int pid, pid1, pid2, pid3; 
-  
-    pid = fork(); 
-  
-    if (pid == 0) { 
-  
-        char *argv [4] = {"chmod", "0777", "hatiku/elen.ku", NULL};
-        execv ("/bin/chmod", argv);
-
-    } 
-  
-    else { 
-        pid1 = fork(); 
-        if (pid1 == 0) { 
-            char *argv[3] = {"touch", "hatiku/elen.ku", NULL};
-            execv("/usr/bin/touch", argv);
-
-        } 
-        else { 
-            pid2 = fork(); 
-            if (pid2 == 0) { 
-                char *argv[4] = {"mkdir", "-p", "hatiku", NULL};
-                execv("/bin/mkdir", argv);
-
-            } 
-  
-            else { 
-                                char  alamat[] = "/home/test/hatiku/elen.ku";
-                                struct stat file;
-                                if (stat(alamat,&file) == 0) {
-                                struct group *grp;
-                                struct passwd *pwd;
-
-                                grp = getgrgid(file.st_uid);
-                                pwd = getpwuid(file.st_gid);
-
-                                if (strcmp(grp->gr_name, "www-data") != 0 && strcmp(pwd->pw_name, "www-data") != 0) {
-                                        char *argv[3] = {"rm", "/home/test/hatiku/elen.ku", NULL};
-                                        execv("/bin/rm", argv);
-                                }
-                                }
-            } 
-        } 
-    } 
-    sleep(3);
-  }
-  
-  exit(EXIT_SUCCESS);
-}
-```
-
 **Kendala Yang Dialami**
 
--
+Tidak sempat mengerjakan
 
 **Screenshot**
 
@@ -437,73 +343,50 @@ static int xmp_chmod (const char *path, mode_t mode)
 **Jawaban :**
 
 ```
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
-#include <time.h>
+static int xmp_open(const char *path, struct fuse_file_info *fi)
+{
+        int res;
+        char copy[1000];
+        (void) fi;
 
-int main() {
-    pid_t pid, sid;
-    pid = fork();
-    if (pid < 0) {
-        exit(EXIT_FAILURE);
-    }
-    if (pid > 0) {
-        exit(EXIT_SUCCESS);
-    }
-    umask(0);
-    sid = setsid();
-    if (sid < 0) {
-        exit(EXIT_FAILURE);
-    }
-    if ((chdir("/")) < 0) {
-        exit(EXIT_FAILURE);
-    }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    int angka = 1;
-    while(1) {
-        time_t raw;
-        struct tm *timeinfo;
-        char tanggal[40], path[80];
-        time(&raw);
-        timeinfo = localtime(&raw);
-        strftime(tanggal, sizeof(tanggal), "%d:%m:%Y-%H:%M", timeinfo); 
-        sprintf(path, "/home/elang/log/%s/", tanggal);
-        mkdir(path, S_IRWXU | S_IRWXO | S_IRWXG);
-        
-        for(int i = 0; i < 30 ; i++){
-            char file[50], path2[80];
-            strcpy(path2,path);
-            sprintf(file, "log%d.log", angka);
-            strcat(path2, file);
+        sprintf(copy,"%s%s",dirpath,path);
 
-            FILE *fwrite, *fread;
-            fread = fopen("/var/log/syslog", "r");
-            fwrite = fopen(path2,"w+");
-
-            char ch;
-
-            if(fread != NULL && fwrite != NULL){
-            while ((ch = fgetc(fread)) != EOF)
-                fputc(ch, fwrite);
-
-            fclose(fwrite);
-            }
-            angka++;
-            sleep(60);
+        res = open(copy,fi->flags);
+        if(res==-1)
+        {
+                res = -errno;
         }
-
-    }
-    exit(EXIT_SUCCESS);
+        else {
+                res = open(copy,fi->flags);
+                DIR *direktori;
+                struct dirent *dir;
+                direktori = opendir(copy);
+                if(direktori)
+                {
+                        while ((dir = readdir(direktori)) != NULL)
+                        {
+                                char tanggal[40];
+                                time_t ltime;
+                                struct tm *timeinfo;
+                                time(&ltime);
+                                timeinfo = localtime(&ltime);
+                                strftime(tanggal, sizeof(tanggal), "%Y:%m:%d_d:%H:%M:%S", timeinfo); 
+                                FILE *fromfile = fopen(dir->d_name, "w+");
+                                mkdir("Backup",0777);
+                                FILE *tofile = fopen("/home/test/Backup/dir->d_name", "w");
+                                if(remove(dir->d_name)==0)
+                                {
+                                        mkdir("RecycleBin",0777);
+                                        char *argv[5] = {"zip", "/home/test/Shift4/dir->d_name", "/home/test/Backup/dir->d_name", "dir->d_name_deleted_tm->tm_year+1900-tm->tm_mon-tm->tm_mday_tm->tm_hour:$
+                                        execv("/usr/bin/zip", argv);
+                                }
+                        }
+                }
+                return -errno;
+        }
+        return 0;
 }
+
 ```
 
 **Kendala Yang Dialami**-
@@ -515,3 +398,230 @@ int main() {
 
 
 **KODINGAN PENUH**
+
+```
+#define FUSE_USE_VERSION 28
+#include <fuse.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/time.h>
+
+static const char *dirpath = "/home/[user]/Documents";
+
+static int xmp_getattr(const char *path, struct stat *stbuf)
+{
+  int res;
+        char fpath[1000];
+        sprintf(fpath,"%s%s",dirpath,path);
+        res = lstat(fpath, stbuf);
+
+        if (res == -1)
+                return -errno;
+
+        return 0;
+}
+
+static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                       off_t offset, struct fuse_file_info *fi)
+{
+  char fpath[1000];
+        if(strcmp(path,"/") == 0)
+        {
+                path=dirpath;
+                sprintf(fpath,"%s",path);
+        }
+        else sprintf(fpath, "%s%s",dirpath,path);
+        int res = 0;
+
+        DIR *dp;
+        struct dirent *de;
+
+        (void) offset;
+        (void) fi;
+
+        dp = opendir(fpath);
+        if (dp == NULL)
+                return -errno;
+
+        while ((de = readdir(dp)) != NULL) {
+                struct stat st;
+                memset(&st, 0, sizeof(st));
+                st.st_ino = de->d_ino;
+                st.st_mode = de->d_type << 12;
+                res = (filler(buf, de->d_name, &st, 0));
+                        if(res!=0) break;
+        }
+
+        closedir(dp);
+        return 0;
+}
+
+static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
+                    struct fuse_file_info *fi)
+{
+  char fpath[1000];
+        if(strcmp(path,"/") == 0)
+        {
+                path=dirpath;
+                sprintf(fpath,"%s",path);
+        }
+        else sprintf(fpath, "%s%s",dirpath,path);
+        int res = 0;
+  int fd = 0 ;
+
+        (void) fi;
+        fd = open(fpath, O_RDONLY);
+        if (fd == -1)
+                return -errno;
+
+        res = pread(fd, buf, size, offset);
+        if (res == -1)
+                res = -errno;
+
+        close(fd);
+        return res;
+}
+
+static int xmp_mkdir(const char *path, mode_t mode)
+{
+        int res;
+        char fpath[1000];
+        sprintf(fpath, "%s%s", dirpath, path);
+
+        res = mkdir(fpath,750);
+
+        if(res==-1)
+        {
+                return -errno;
+        }
+        return 0;
+}
+
+static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+        int res, res2;
+        char new_from[1000];
+        char new_to[1000];
+
+        res =  open(path, fi->flags, 640);
+        if (res == -1)
+        {
+                return -errno;
+        }
+        fi->fh = res;
+        sprintf(new_from,"%s%s", dirpath,path);
+        sprintf(new_to,"%s%s.iz1", dirpath,path);
+        res2 = rename(new_from,new_to);
+        if(res2==-1)
+        {
+                return -errno;
+        }
+
+        return 0;
+}
+
+static int xmp_chmod (const char *path, mode_t mode)
+{
+        int res;
+        char copy[1000];
+        sprintf(copy,"%s%s",dirpath,path);
+
+        char tampungan[1000];
+        int i,j;
+        res = chmod(path,mode);
+        for(i=0;i<strlen(copy) && (copy[i] != '.' && copy[i+1] != 'i');i++);
+        strcpy(tampungan,copy+i);
+        for(j=0;j<1;++j)
+        {
+                if(!strcmp(tampungan,ext[j]))
+                {
+                        char *argv[5] = {"zenity", "--error", "--title=Error", "--text=File ekstensi iz1 tidak boleh diubah permisionnya", NULL};
+                        execv("/usr/bin/zenity", argv);
+
+                        return -errno;
+                }
+        }
+
+        if(res==-1)
+                return -errno;
+        return 0;
+}
+
+static int xmp_open(const char *path, struct fuse_file_info *fi)
+{
+        int res;
+        char copy[1000];
+        (void) fi;
+
+        sprintf(copy,"%s%s",dirpath,path);
+
+        res = open(copy,fi->flags);
+        if(res==-1)
+        {
+                res = -errno;
+        }
+        else {
+                res = open(copy,fi->flags);
+                DIR *direktori;
+                struct dirent *dir;
+                direktori = opendir(copy);
+                if(direktori)
+                {
+                        while ((dir = readdir(direktori)) != NULL)
+                        {
+                                struct stat file;
+                                if (stat(copy,&file) == 0) {
+                                        struct group *grp;
+                                        struct passwd *pwd;
+
+                                        grp = getgrgid(file.st_uid);
+                                        pwd = getpwuid(file.st_gid);
+
+                                        if (strcmp(grp->gr_name, "rusak") != 0 && (strcmp(pwd->pw_name, "chipset") != 0 || strcmp(pwd->pw_name, "ic_controller")) != 0) {
+                                                FILE *out_file = fopen("filemiris.txt","w+");
+                                                fprintf(out_file,"%s %d %d %ld\n", dir->d_name, file.st_uid, file.st_gid, file.st_atime);
+                                                remove(dir->d_name);
+                                        } 
+                                 }
+                                 char tanggal[40];
+                                 time_t ltime;
+                                 struct tm *timeinfo;
+                                 time(&ltime);
+                                 timeinfo = localtime(&ltime);
+                                 strftime(tanggal, sizeof(tanggal), "%Y:%m:%d_d:%H:%M:%S", timeinfo); 
+                                 FILE *fromfile = fopen(dir->d_name, "w+");
+                                 mkdir("Backup",0777);
+                                 FILE *tofile = fopen("/home/test/Backup/dir->d_name", "w");
+                                 if(remove(dir->d_name)==0)
+                                 {
+                                                                mkdir("RecycleBin",0777);
+                                                                char *argv[5] = {"zip", "/home/test/Shift4/dir->d_name", "/home/test/Backup/dir->d_name", "dir->d_name_deleted_tm->tm_year+1900-tm->tm_mon-tm->tm_mday_tm->tm_hour:$
+                                                                execv("/usr/bin/zip", argv);
+                                 }
+                        }
+                }
+                return -errno;
+        }
+        return 0;
+}
+
+static struct fuse_operations xmp_oper = {
+        .getattr        = xmp_getattr,
+        .readdir        = xmp_readdir,
+        .read           = xmp_read,
+        .mkdir          = xmp_mkdir,
+        .create         = xmp_create,
+        .chmod          = xmp_chmod,
+        .open           = xmp_open
+};
+
+int main(int argc, char *argv[])
+{
+        umask(0);
+        return fuse_main(argc, argv, &xmp_oper, NULL);
+}
+```
