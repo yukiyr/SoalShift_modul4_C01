@@ -48,112 +48,62 @@ Perhatian: Karakter ‘/’ adalah karakter ilegal dalam penamaan file atau fold
 **Jawaban :**
 
 ```
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <errno.h>
+char chlist[] = {"qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0"}, path1[1024], path2[1024];
 
-int main() {
-  pid_t pid, sid;
+void enc(char arr[]);
+void dec(char arr[]);
 
-  pid = fork();
+void enc(char arr[])
+{
+	int i = 0, j, k;
+	while(arr[i] != '\0')
+	{
+		k = arr[i];
 
-  if (pid < 0) {
-    exit(EXIT_FAILURE);
-  }
+		if(k == '/'){
+			j = 0;
+			while(j < strlen(chlist))
+			{
+				if(k == chlist[j]) break;
+				j++;
+			}
+			
+			j = j + 17;
+			if(j > 93)
+				j = j - strlen(chlist);
 
-  if (pid > 0) {
-    exit(EXIT_SUCCESS);
-  }
+			arr[i] = chlist[j];
+		}
 
-  umask(0);
+		++i;
+	}
+}
 
-  sid = setsid();
+void dec(char arr[])
+{
+	int i = 0, j, k;
+	while(arr[i] != '\0')
+	{
+		k = arr[i];
 
-  if (sid < 0) {
-    exit(EXIT_FAILURE);
-  }
+		if(k == '/'){
+			j = 0;
+			while(j < strlen(chlist))
+			{
+				if(k == chlist[i]) break;
+				j++;
+			}
+			
+			j = j - 17;
 
-  if ((chdir("/home/test")) < 0) {
-    exit(EXIT_FAILURE);
-  }
+			if(j < 0)
+				j = j + strlen(chlist);
 
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  close(STDERR_FILENO);
+			arr[i] = chlist[j];
+		}
 
-  while(1) {
-        pid_t child_id, child_id_2;
-        int status;
-
-        child_id = fork();
-
-        if (child_id == 0) {
-        // this is child
-
-        char *argv[4] = {"mkdir", "-p", "modul2/gambar", NULL};
-        execv("/bin/mkdir", argv);
-        } else {
-        // this is second child
-        child_id_2 = fork();
-        if (child_id_2 == 0) {
-
-        char *argv[4] = {"mkdir", "-p", "modul2", NULL};
-        execv("/bin/mkdir", argv);
-
-        } else {
-        while ((wait(&status)) > 0);
-        char filename[10000];
-        char filename2[10000];
-        char filename3[10000];
-        char awal1[10000];
-        char akhir1[10000];
-        char *pointer;
-        char *pointer1;
-        char *pointer2;
-        char *pointer3;
-
-        DIR *direktori;
-        struct dirent *dir;
-        direktori = opendir("/home/test/");
-        if (direktori)
-        {
-                while ((dir = readdir(direktori)) != NULL)
-                {
-                        strcpy(filename,dir->d_name);
-                        pointer3 = strrchr(filename, '.');
-                        strcpy(filename3,filename);
-                        if (pointer3 && (strcmp(pointer3, ".png") == 0))
-                        {
-                                *pointer3 = '\0';
-                                strcpy(filename2,filename);
-                                pointer = filename2;
-                                char tambahan[10]="_grey.png";
-                                strcat (pointer,tambahan);
-                                char awal[]="/home/test/";
-                                char akhir[]="/home/test/modul2/gambar/";
-                                strcpy(awal1,awal);
-                                strcpy(akhir1,akhir);
-                                pointer1 = awal1;
-                                pointer2 = akhir1;
-                                strcat (pointer1,filename3);
-                                strcat (pointer2,pointer);
-                                rename (pointer1,pointer2);
-                        }
-                }
-                closedir(direktori);
-        }
-      }
-    }
-  }
-  exit(EXIT_SUCCESS);
+		++i;
+	}
 }
 ```
 
@@ -411,6 +361,10 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 #include <sys/time.h>
 
 static const char *dirpath = "/home/[user]/Documents";
+char chlist[] = {"qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0"}, path1[1024], path2[1024];
+
+void enc(char arr[]);
+void dec(char arr[]);
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
@@ -607,6 +561,59 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
                 return -errno;
         }
         return 0;
+}
+
+void enc(char arr[])
+{
+	int i = 0, j, k;
+	while(arr[i] != '\0')
+	{
+		k = arr[i];
+
+		if(k == '/'){
+			j = 0;
+			while(j < strlen(chlist))
+			{
+				if(k == chlist[j]) break;
+				j++;
+			}
+			
+			j = j + 17;
+			if(j > 93)
+				j = j - strlen(chlist);
+
+			arr[i] = chlist[j];
+		}
+
+		++i;
+	}
+}
+
+void dec(char arr[])
+{
+	int i = 0, j, k;
+	while(arr[i] != '\0')
+	{
+		k = arr[i];
+
+		if(k == '/'){
+			j = 0;
+			while(j < strlen(chlist))
+			{
+				if(k == chlist[i]) break;
+				j++;
+			}
+			
+			j = j - 17;
+
+			if(j < 0)
+				j = j + strlen(chlist);
+
+			arr[i] = chlist[j];
+		}
+
+		++i;
+	}
 }
 
 static struct fuse_operations xmp_oper = {
