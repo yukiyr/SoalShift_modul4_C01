@@ -303,76 +303,50 @@ Jika ditemukan file dengan spesifikasi tersebut ketika membuka direktori, Atta a
 **Jawaban :**
 
 ```
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
+static int xmp_open(const char *path, struct fuse_file_info *fi)
+{
+        int res;
+        char copy[1000];
+        (void) fi;
 
-int main() {
-  int p[2];
-  int q[2];
+        sprintf(copy,"%s%s",dirpath,path);
 
-  pid_t child_id;
-  pid_t child_id_2;
-  pid_t child_id_3;
-  pid_t child_id_4;
-  int status;
-  int r;
-  char tampungan[10000]={0};
-
-  child_id = fork();
-
-  if (child_id == 0) {
-    // this is first child
-        char *argv[3] = {"touch", "daftar.txt", NULL};
-        execv("/usr/bin/touch", argv);
-
-  } else {
-    // this is second child
-    child_id_2 = fork();
-    if (child_id_2 == 0) {
-        char *argv[3] = {"unzip", "campur2.zip", NULL};
-        execv("/usr/bin/unzip", argv);
-
-    } else {
-      while ((wait(&status)) > 0);
-
-        char *ls[] = {"ls", "campur2", NULL};
-        char *grep[] = {"grep", ".*.txt$", NULL};
-
-        pipe(p);
-        pipe(q);
-        child_id_3=fork();
-        if (child_id_3 == 0) {
-                //this is third child
-                dup2(p[1],1);
-                close(p[0]);
-                close(p[1]);
-                execvp("ls", ls);
-        } else {
-                child_id_4 = fork();
-                if (child_id_4 == 0) {
-                        //this is fourth child
-                        dup2(p[0],0);
-                        dup2(q[1],1);
-                        close(p[1]);
-                        close(p[0]);
-                        close(q[1]);
-                        close(q[0]);
-                        execvp("grep", grep);
-                } else {
-                        close(p[0]);
-                        close(p[1]);
-                        close(q[1]);
-                        r = read(q[0],tampungan,sizeof(tampungan));
-                        FILE *out_file = fopen("daftar.txt","w+");
-                        fprintf(out_file,"%.*s\n", r, tampungan);
-                }
+        res = open(copy,fi->flags);
+        if(res==-1)
+        {
+                res = -errno;
         }
-    }
-  }
+        else {
+                res = open(copy,fi->flags);
+                DIR *direktori;
+                struct dirent *dir;
+                direktori = opendir(copy);
+                if(direktori)
+                {
+                        while ((dir = readdir(direktori)) != NULL)
+                        {
+                                struct stat file;
+                                if (stat(copy,&file) == 0) {
+                                        struct group *grp;
+                                        struct passwd *pwd;
+
+                                        grp = getgrgid(file.st_uid);
+                                        pwd = getpwuid(file.st_gid);
+
+                                        if (strcmp(grp->gr_name, "rusak") != 0 && (strcmp(pwd->pw_name, "chipset") != 0 || strcmp(pwd->pw_name, "ic_controller")) != 0) {
+                                                FILE *out_file = fopen("filemiris.txt","w+");
+                                                fprintf(out_file,"%s %d %d %ld\n", dir->d_name, file.st_uid, file.st_gid, file.st_atime);
+                                                remove(dir->d_name);
+                                                return -errno;
+                                        }
+                                }
+                        }
+                }
+                if(res==-1) res=-errno;
+        }
+        return res;
 }
+
 ```
 
 **Kendala Yang Dialami**
@@ -386,71 +360,69 @@ int main() {
 **Jawaban :**
 
 ```
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
-#include <time.h>
+static int xmp_mkdir(const char *path, mode_t mode)
+{
+        int res;
+        char fpath[1000];
+        sprintf(fpath, "%s%s", dirpath, path);
 
-int main() {
-  pid_t pid, sid;
+        res = mkdir(fpath,750);
 
-  pid = fork();
+        if(res==-1)
+        {
+                return -errno;
+        }
+        return 0;
+}
 
-  if (pid < 0) {
-    exit(EXIT_FAILURE);
-  }
+static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+        int res, res2;
+        char new_from[1000];
+        char new_to[1000];
 
-  if (pid > 0) {
-    exit(EXIT_SUCCESS);
-  }
+        res =  open(path, fi->flags, 640);
+        if (res == -1)
+        {
+                return -errno;
+        }
+        fi->fh = res;
+        sprintf(new_from,"%s%s", dirpath,path);
+        sprintf(new_to,"%s%s.iz1", dirpath,path);
+        res2 = rename(new_from,new_to);
+        if(res2==-1)
+        {
+                return -errno;
+        }
 
-  umask(0);
+        return 0;
+}
 
-  sid = setsid();
+static int xmp_chmod (const char *path, mode_t mode)
+{
+        int res;
+        char copy[1000];
+        sprintf(copy,"%s%s",dirpath,path);
 
-  if (sid < 0) {
-    exit(EXIT_FAILURE);
-  }
+        char tampungan[1000];
+        int i,j;
+        res = chmod(path,mode);
+        for(i=0;i<strlen(copy) && (copy[i] != '.' && copy[i+1] != 'i');i++);
+        strcpy(tampungan,copy+i);
+        for(j=0;j<1;++j)
+        {
+                if(!strcmp(tampungan,ext[j]))
+                {
+                        char *argv[5] = {"zenity", "--error", "--title=Error", "--text=File ekstensi iz1 tidak boleh diubah permisionnya", NULL};
+                        execv("/usr/bin/zenity", argv);
 
-  if ((chdir("/")) < 0) {
-    exit(EXIT_FAILURE);
-  }
+                        return -errno;
+                }
+        }
 
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  close(STDERR_FILENO);
-  int angka = 1;
-  while(1) {
-    struct stat baca;
-
-    time_t raw;
-    time(&raw);
-
-    char file[100], sehat[100];
-    strcpy(file, "/home/elang/Documents/makanan/makan_enak.txt");
-
-    stat(file, &baca);
-
-    int last = (int)difftime(raw, baca.st_atime);
-
-    if (last <= 30)
-    {
-      sprintf(sehat, "/home/elang/Documents/makanan/makan_sehat%d.txt", angka);
-      FILE *fsehat;
-      fsehat = fopen(sehat, "w");
-      fclose(fsehat);
-      angka++;
-    }
-    sleep(5);
-  }
-
-  exit(EXIT_SUCCESS);
+        if(res==-1)
+                return -errno;
+        return 0;
 }
 ```
 
