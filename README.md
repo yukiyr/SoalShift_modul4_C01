@@ -48,61 +48,51 @@ Perhatian: Karakter ‘/’ adalah karakter ilegal dalam penamaan file atau fold
 **Jawaban :**
 
 ```
-char chlist[] = {"qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0"}, path1[1024], path2[1024];
+char caesar[] = {"qE1~ YMUR2\"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\\8s;g<{3.u*W-0"};
+char encrypt[1000], decrypt[1000];
 
 void enc(char arr[]);
 void dec(char arr[]);
 
 void enc(char arr[])
 {
-	int i = 0, j, k;
-	while(arr[i] != '\0')
+	int n, i, ch;
+	for(n = 0; arr[n] != '\0'; ++n)
 	{
-		k = arr[i];
+		ch = arr[n];
 
-		if(k == '/'){
-			j = 0;
-			while(j < strlen(chlist))
-			{
-				if(k == chlist[j]) break;
-				j++;
-			}
-			
-			j = j + 17;
-			if(j > 93)
-				j = j - strlen(chlist);
+		if(ch == '/') continue;
 
-			arr[i] = chlist[j];
+		for(i = 0; i < strlen(caesar); i++)
+		{
+			if(ch == caesar[i]) break;
 		}
+		
+		i = i + 17;
+		if(i > 93) i = i - strlen(caesar);
 
-		++i;
+		arr[n] = caesar[i];
 	}
 }
 
 void dec(char arr[])
 {
-	int i = 0, j, k;
-	while(arr[i] != '\0')
+	int n, i, ch;
+	for(n = 0; arr[n] != '\0'; ++n)
 	{
-		k = arr[i];
+		ch = arr[n];
 
-		if(k == '/'){
-			j = 0;
-			while(j < strlen(chlist))
-			{
-				if(k == chlist[i]) break;
-				j++;
-			}
-			
-			j = j - 17;
+		if(ch == '/') continue;
 
-			if(j < 0)
-				j = j + strlen(chlist);
-
-			arr[i] = chlist[j];
+		for(i = 0; i < strlen(caesar); i++)
+		{
+			if(ch == caesar[i]) break;
 		}
+		
+		i = i - 17;
+		if(i < 0) i = i + strlen(caesar);
 
-		++i;
+		arr[n] = caesar[i];
 	}
 }
 ```
@@ -159,48 +149,30 @@ Jika ditemukan file dengan spesifikasi tersebut ketika membuka direktori, Atta a
 **Jawaban :**
 
 ```
-static int xmp_open(const char *path, struct fuse_file_info *fi)
+void checkOwnerGroup(const char *path, const char *cpath);
+
+void checkOwnerGroup(const char *path, const char *cpath)
 {
-        int res;
-        char copy[1000];
-        (void) fi;
+	char copy[1000];
+	sprintf(copy,"%s%s",dirpath,path);
+	struct stat file;
+        lstat(path,&file);
+        struct group *grp;
+        struct passwd *pwd;
 
-        sprintf(copy,"%s%s",dirpath,path);
+        grp = getgrgid(file.st_uid);
+        pwd = getpwuid(file.st_gid);
 
-        res = open(copy,fi->flags);
-        if(res==-1)
-        {
-                res = -errno;
+        if (strcmp(grp->gr_name, "rusak")!=0 && (strcmp(pwd->pw_name, "chipset")!=0 || !strcmp(pwd->pw_name, "ic_controller")!=0) && access(path,R_OK) !=0))
+	{
+		char filemiris[]="/filemiris.txt";
+		char newfile[1000];
+		sprintf(newfile,"%s%s",dirpath,filemiris);
+        	FILE *out_file = fopen(newfile,"a");
+        	fprintf(out_file,"%s %d %d %ld %s %s\n", cpath, file.st_uid, file.st_gid, file.st_atime, grp->gr_name, pwd->pw_name);
+		fclose(out_file);
+        	remove(path);
         }
-        else {
-                res = open(copy,fi->flags);
-                DIR *direktori;
-                struct dirent *dir;
-                direktori = opendir(copy);
-                if(direktori)
-                {
-                        while ((dir = readdir(direktori)) != NULL)
-                        {
-                                struct stat file;
-                                if (stat(copy,&file) == 0) {
-                                        struct group *grp;
-                                        struct passwd *pwd;
-
-                                        grp = getgrgid(file.st_uid);
-                                        pwd = getpwuid(file.st_gid);
-
-                                        if (strcmp(grp->gr_name, "rusak") != 0 && (strcmp(pwd->pw_name, "chipset") != 0 || strcmp(pwd->pw_name, "ic_controller")) != 0) {
-                                                FILE *out_file = fopen("filemiris.txt","w+");
-                                                fprintf(out_file,"%s %d %d %ld\n", dir->d_name, file.st_uid, file.st_gid, file.st_atime);
-                                                remove(dir->d_name);
-                                                return -errno;
-                                        }
-                                }
-                        }
-                }
-                if(res==-1) res=-errno;
-        }
-        return res;
 }
 
 ```
@@ -220,9 +192,19 @@ static int xmp_mkdir(const char *path, mode_t mode)
 {
         int res;
         char fpath[1000];
-        sprintf(fpath, "%s%s", dirpath, path);
+	char cpath[1000];
+	char youtuber[1000]="/YOUTUBER";
+	sprintf(cpath, "%s", path);
+        sprintf(fpath, "%s%s", dirpath,cpath);
 
-        res = mkdir(fpath,750);
+	if(strstr(fpath,youtuber))
+	{
+		res = mkdir(fpath,0750);
+	}
+	else
+	{
+		res = mkdir(fpath,mode);
+	}
 
         if(res==-1)
         {
@@ -233,53 +215,67 @@ static int xmp_mkdir(const char *path, mode_t mode)
 
 static int xmp_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-        int res, res2;
-        char new_from[1000];
-        char new_to[1000];
+	(void) fi;
+        int res;
+        char fpath[1000];
+	char cpath[1000];
+	char youtuber[1000]="/YOUTUBER";
+	sprintf(cpath, "%s", path);
+        sprintf(fpath, "%s%s", dirpath, cpath);
 
-        res =  open(path, fi->flags, 640);
-        if (res == -1)
+	if(strstr(fpath,youtuber))
+	{
+		res = creat(fpath,0640);
+	}
+	else
+	{
+		res = creat(fpath,mode);
+	}
+
+        if(res==-1)
         {
                 return -errno;
         }
-        fi->fh = res;
-        sprintf(new_from,"%s%s", dirpath,path);
-        sprintf(new_to,"%s%s.iz1", dirpath,path);
-        res2 = rename(new_from,new_to);
-        if(res2==-1)
-        {
-                return -errno;
-        }
-
+	close(res);
         return 0;
 }
 
 static int xmp_chmod (const char *path, mode_t mode)
 {
         int res;
-        char copy[1000];
-        sprintf(copy,"%s%s",dirpath,path);
+        char fpath[1000];
+	char cpath[1000];
+	char youtuber[1000]="/YOUTUBER";
+	sprintf(cpath, "%s", path);
+        sprintf(fpath, "%s%s", dirpath, cpath);
 
-        char tampungan[1000];
-        int i,j;
-        res = chmod(path,mode);
-        for(i=0;i<strlen(copy) && (copy[i] != '.' && copy[i+1] != 'i');i++);
-        strcpy(tampungan,copy+i);
-        for(j=0;j<1;++j)
-        {
-                if(!strcmp(tampungan,ext[j]))
-                {
-                        char *argv[5] = {"zenity", "--error", "--title=Error", "--text=File ekstensi iz1 tidak boleh diubah permisionnya", NULL};
-                        execv("/usr/bin/zenity", argv);
-
-                        return -errno;
-                }
-        }
+	if(strstr(fpath,youtuber))
+	{
+		int status;
+		pid_t child1;
+		child1= fork();
+		if (child1==0)
+		{
+			char *argv[5] = {"zenity", "--error", "--title=Error", "--text=File ekstensi iz1 tidak boleh diubah permisionnya", NULL};
+                	execv("/usr/bin/zenity", argv);
+		}
+		else
+		{
+			while(wait(&status)>0);
+		}
+	}
+	else
+	{
+		res = chmod(fpath,mode);
+	}
 
         if(res==-1)
+        {
                 return -errno;
+        }
         return 0;
 }
+
 ```
 
 **Kendala Yang Dialami**
